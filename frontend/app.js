@@ -1,3 +1,6 @@
+const APP_ENV = window.ENV && window.ENV.APP_ENV;
+const BACKEND_HOST = "https://psychiatrist-bot.onrender.com";
+
 let userId = null;
 let sessionId = null;
 let mediaRecorder = null;
@@ -56,7 +59,7 @@ window.addEventListener('DOMContentLoaded', () => {
         document.getElementById('register-section').style.display = 'none';
         document.getElementById('chat-section').style.display = 'flex';
         // Fetch and show chat history from backend
-        fetch(`http://localhost:8000/api/v1/user/${userId}/sessions/`)
+        fetch(`${BACKEND_HOST}/api/v1/user/${userId}/sessions/`)
             .then(res => {
                 if (res.status === 404) {
                     logoutUser();
@@ -93,7 +96,7 @@ async function registerUser() {
         formData.append('name', name);
         formData.append('age', age);
         formData.append('sex', sex);
-        const res = await fetch('http://localhost:8000/api/v1/register/', {
+        const res = await fetch(`${BACKEND_HOST}/api/v1/register/`, {
             method: 'POST',
             body: formData
         });
@@ -149,7 +152,7 @@ function stopBotAudio() {
 
 function playBotSpeech(text) {
     stopBotAudio();
-    fetch(`http://localhost:8000/api/v1/chat/speech/?text=${encodeURIComponent(text)}`)
+    fetch(`${BACKEND_HOST}/api/v1/chat/speech/?text=${encodeURIComponent(text)}`)
       .then(response => response.arrayBuffer())
       .then(arrayBuffer => {
         const audioBlob = new Blob([arrayBuffer], { type: 'audio/mpeg' });
@@ -163,7 +166,7 @@ function playBotSpeech(text) {
 
 async function checkSessionValidity() {
     if (!userId || !sessionId) return;
-    const res = await fetch(`http://localhost:8000/api/v1/user/${userId}/sessions/`);
+    const res = await fetch(`${BACKEND_HOST}/api/v1/user/${userId}/sessions/`);
     if (res.status === 404) {
         logoutUser();
         showError('Your session has expired. Please register again.');
@@ -181,13 +184,20 @@ async function sendText() {
             hideLoader();
             return;
         }
+        // Check session before sending chat request
+        const valid = await checkSessionValidity();
+        if (!valid) {
+            hideLoader();
+            return;
+        }
         addMessageToChat({ role: 'user', content: message });
         document.getElementById('text-input').value = '';
         const formData = new FormData();
         formData.append('user_id', userId);
         formData.append('session_id', sessionId);
         formData.append('message', message);
-        const res = await fetch('http://localhost:8000/api/v1/chat/text/', {
+        console.log(`${BACKEND_HOST}/api/v1/user/${userId}/sessions/`);
+        const res = await fetch(`${BACKEND_HOST}/api/v1/chat/text/`, {
             method: 'POST',
             body: formData
         });
@@ -295,12 +305,18 @@ async function sendAudio() {
     try {
         stopBotAudio();
         showLoader();
+        // Check session before sending chat request
+        const valid = await checkSessionValidity();
+        if (!valid) {
+            hideLoader();
+            return;
+        }
         const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
         const formData = new FormData();
         formData.append('user_id', userId);
         formData.append('session_id', sessionId);
         formData.append('audio', audioBlob, 'audio.wav');
-        const res = await fetch('http://localhost:8000/api/v1/chat/audio/', {
+        const res = await fetch(`${BACKEND_HOST}/api/v1/chat/audio/`, {
             method: 'POST',
             body: formData
         });

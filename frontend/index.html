@@ -7,6 +7,13 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <!-- For production, set the backend host and environment here -->
+    <script>
+      window.ENV = {
+        APP_ENV: "prod",
+        BACKEND_HOST: "https://psychiatrist-bot.onrender.com"
+      };
+    </script>
     <div class="center-card" id="register-section">
         <h1>Welcome to MindBot</h1>
         <p style="color:#888;margin-bottom:18px;">Your private AI therapy companion</p>
